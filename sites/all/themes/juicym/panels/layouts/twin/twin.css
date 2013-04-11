@@ -1,0 +1,41 @@
+
+.panel-twin { 
+/*  overflow: hidden;  */
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.panel-twin .panel-col-top,
+.panel-twin .panel-col-bottom { 
+  width: 99.9%; 
+  clear: both;
+}
+
+.panel-twin .panel-col-top {
+  margin-bottom: .5em;
+}
+
+.panel-twin .content-secondary { 
+  float: left; 
+  width: 25%; 
+}
+* html .panel-twin .content-primary {
+  width: 74.9%;
+}
+
+.panel-twin .panel-col-first { 
+  margin: 0 .5em 1em 0;
+}
+
+.panel-twin .panel-col-last { 
+  float: left; 
+  width: 49.9%; 
+}
+
+.panel-twin .panel-col-last { 
+  margin: 0 0 1em .5em;
+}
+
+.panel-twin .panel-separator {
+  margin: 0 0 1em 0;
+}

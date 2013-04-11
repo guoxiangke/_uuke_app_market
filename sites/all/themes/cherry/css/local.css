@@ -1,0 +1,176 @@
+/* theme */
+#zone-header a,
+#zone-header a:link,
+#zone-header a:visited  {
+	text-decoration: none;	
+	border-bottom: none;
+}
+
+#zone-user {
+	width: 100%;
+	background-color: black;
+}
+
+#zone-menu-wrapper {
+	margin-top: 10px;
+}
+
+/* region */
+#region-user-second {
+	padding: 5px 0 5px 0;
+	float: right;
+	text-align: right;
+	font-size: 125%;
+}
+
+#region-user-second a {
+	color: white;
+	border: none;
+}
+
+#region-user-second p {
+	margin-bottom: 0;
+}
+
+#region-header-first .block {
+	display: inline-block;
+}
+
+#region-header-second {
+	float: right;
+}
+
+#region-branding .branding-data {
+	display: inline-block;
+}
+
+#region-branding #block-search-form {
+	display: inline-block;
+	width: 40%;
+	float: right;
+	padding: 4em 10% 0 0;
+}
+
+#section-footer {
+	border-top: 2px solid aqua;
+	margin-top: 1em;
+	padding-top: 1em;
+}
+
+#region-footer-second {
+	align: center;
+}
+
+/* page */
+
+.page-home #block-system-main {
+	box-shadow: none;
+	background-color: transparent;
+	padding: 0;
+}
+
+/* field */
+.text-format-wrapper fieldset {
+	display: none;
+} 
+
+/* module */
+.vbo-views-form fieldset legend {
+	display: none;
+}
+
+.view-class-list .vbo-views-form #edit-create {
+	display: inline-block;
+}
+
+/* content */
+.content .top {
+	border-bottom: 5px solid cadetblue;
+	margin-bottom: 2em;
+}
+
+.content .left-above {
+	height: 320px;
+	background-color: lightgrey;
+}
+
+.content .left-above .inside {
+	padding: 1em 1em 1em 5em;
+}
+
+.content .left-above .pane-node-title {
+	font-size: 200%;
+	padding-top: 2em;
+}
+
+.content .middle {
+	margin-top: 1em;	
+}
+
+.content .left-below {
+	background-color: white;
+}
+
+.content .left-below .inside {
+	padding: 1em;
+}
+
+/* comments */
+.pane-node-comments header,
+.pane-node-comments .comment-links {
+	display: none;
+}
+.pane-node-comments .field-name-field-rating {
+	display: inline-block;
+}
+.pane-node-comments .field-name-field-title {
+	display: inline-block;
+	padding-left: 1em;
+	vertical-align: center;
+	font-size: 120%;
+	font-weight: bold;
+}
+
+/* customized */
+.appname a {
+	font-size: 125%;
+	font-weight: bold;
+	border: none;
+}
+
+
+/* tabs */
+
+#tabs {
+	padding: 0px;
+	background: none;
+	border-width: 0px;
+}
+#tabs .ui-tabs-nav {
+	padding-left: 0px;
+	background: transparent;
+	border-width: 0px 0px 1px 0px;
+	-moz-border-radius: 0px;
+	-webkit-border-radius: 0px;
+	border-radius: 0px;
+}
+
+#tabs .ui-tabs-panel {
+	background: url(../images/ui-bg_highlight.png) repeat-x scroll 50% top #f5f3e5;
+	border-width: 0px 1px 1px 1px;
+}
+
+a.download {
+	display: inline-block;
+	background: blue;
+	color: white;
+	margin: 1em 0.5em;
+	padding: 0.5em 1em;
+	font-size: 1.2em;
+	font-weight: bold;
+}
+
+.field-name-field-picture .field-item {
+    display: inline-block;
+}
+

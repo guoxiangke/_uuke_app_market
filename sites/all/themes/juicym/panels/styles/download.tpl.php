@@ -1,0 +1,1 @@
+<a rel="external" data-role="button" data-mini="true" href="<?php print $uri; ?>">安装</a>

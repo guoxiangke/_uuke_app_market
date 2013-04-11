@@ -1,0 +1,11 @@
+<?php
+
+/**
+ * @file
+ * uc_alipay.module的安装文件.
+ */
+
+function uc_alipay_uninstall() {
+  db_query("DELETE FROM {variable} WHERE name LIKE 'uc_alipay_%%'");
+}
+

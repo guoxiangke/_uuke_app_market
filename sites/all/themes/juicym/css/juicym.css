@@ -1,0 +1,102 @@
+#breadcrumb {
+	display: none;
+}
+
+a {
+	text-decoration: none;
+}
+
+/* header */
+.ui-header .ui-controlgroup {
+	display: inline-block;
+	text-align: center;
+	margin: 5px 0 0 0;
+}
+
+/* content */
+.content-secondary {
+	width: 23%;
+	padding: 1%;
+}
+.content-primary {
+	width: 73%;
+	padding: 1%;
+}
+
+.jcarousel-roundabout {
+	list-style: none;
+	width: 48em;
+	height: 12em;
+	margin-left: 8em;
+}
+
+.jcarousel-roundabout img {
+	width: 16em;
+	height: 12em;
+}
+
+/* home */
+.view-content .container_16 {
+	margin-bottom: 1em;	
+}
+.container_16 .grid_2 a {
+	display: block;
+	text-decoration: none;
+}
+
+/* app */
+.main-content h2.title {
+	display: none;
+}
+.content-secondary .field-label, 
+.content-secondary .field-items {
+	display: inline-block;
+}
+.content-secondary .field-name-field-icon {
+	margin-left: 20%;
+}
+.content-secondary .ui-btn {
+	margin-left: 10%;
+	width: 50%;
+}
+.content-secondary .field-name-field-subject {
+	margin-top: 2em;
+}
+/*.fivestar-average-stars {
+	display: inline-block;
+}*/
+.field-name-field-picture .field-item {
+    display: inline-block;
+}
+.content-secondary .ui-listview-inset {
+	margin-top: 5em;
+	width: 65%;
+	margin-left: 8%;
+} 
+
+.view-apps a.ui-link {
+	display: block;
+	text-decoration: none;
+}
+
+.ui-li-divider a {
+	text-decoration: none;
+}
+
+.pane-node-title {
+	font-size: 1.5em;
+	font-weight: bold;
+}
+
+.content-primary .pane-node-body {
+	margin-top: 2em;
+}
+
+.content-primary h2 {
+	font-size: 1em;
+	font-weight: normal;
+	color: blue;
+}
+
+
+

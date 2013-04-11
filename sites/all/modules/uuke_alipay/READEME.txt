@@ -1,0 +1,2 @@
+node/%node/alipay
+the node type must have a filed named:field_uuke_price

@@ -1,0 +1,75 @@
+<?php
+/**
+ * Implements hook_uninstall().
+ */
+function uuke_alipay_uninstall() {
+	db_query("DELETE FROM {variable} WHERE name LIKE 'uuke_alipay_%%'");
+}
+/**
+ * Implements hook_schema().
+ */
+function uuke_alipay_schema() {
+  $schema['uuke_alipay'] = array(
+    'description' => 'Stores register pads.',
+    'fields' => array(
+      'trade_no' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => '支付宝交易号r',
+      ),      
+      'out_trade_no' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => '商家交易号',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => "User's {users}.uid.",
+      ),
+      'nid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => '商品节点id',
+      ),
+       'price' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+       'quantity' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'paid_time' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => '付款时间',
+      ),
+      'buy_time' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => '订单生产时间',
+      ),
+
+    ),
+    'primary key' => array('trade_no'),
+    'indexes' => array(
+      'pid' => array('uid'),
+      'nid' => array('nid'),
+    ),
+
+  );
+  return $schema; 
+}
