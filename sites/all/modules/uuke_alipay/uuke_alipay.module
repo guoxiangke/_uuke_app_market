@@ -8,20 +8,20 @@ function uuke_alipay_menu() {
 		'title' => '',
 		'page callback' => 'uuke_alipay_for_node',
 		'page arguments' => array(1),
-		'access arguments' => array('pay for it'),
+		'access arguments' => array('buy online'),
 	);
 	$items['admin/alipay/configue'] = array(
 		'title' => '',
 		'page callback' => 'drupal_get_form',
 		'page arguments' => array('uuke_alipay_configue'),
-		'access arguments' => array('access content'),
+		'access arguments' => array('administer uuke alipay configuration'),
 	);
 	$items['admin/alipay/configue/content_type'] = array(
 		'title' => '',
 		'page callback' => 'drupal_get_form',
-		'page arguments' => array('uuke_alipay_content_type_setting'),
-		'access arguments' => array('access content'),
-    'file' => 'uuke_alipay.pages.inc',
+		'page arguments' => array('uuke_alipay_content_types_setting_form'),
+		'access arguments' => array('administer uuke alipay configuration'),
+   	'file' => 'uuke_alipay.pages.inc',
 	);    
 	$items['alipay/notify'] = array(
     'title' => 'Order complete',
@@ -36,7 +36,21 @@ function uuke_alipay_menu() {
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
     'file' => 'uc_alipay.pages.inc',
-  );
+  );	
+  $items['user/%user/paid'] = array(
+		'title' => 'My paid products',
+		'page callback' => 'uuke_alipay_paid_list',
+		'page arguments' => array(1),
+		'access arguments' => array('buy online'),
+    'file' => 'uuke_alipay.pages.inc',
+	);
+	$items['admin/alipay/paid'] = array(
+		'title' => 'Paid products',
+		'page callback' => 'uuke_alipay_paid_list',
+		'page arguments' => array(NUll,TRUE),
+		'access arguments' => array('administer uuke alipay configuration'),
+    'file' => 'uuke_alipay.pages.inc',
+	);
 	return $items;
 }
 
@@ -45,9 +59,13 @@ function uuke_alipay_menu() {
  */
 function uuke_alipay_permission() {
 	 $perms = array(
-    'pay for it' => array(
-      'title' => t('Pay for It'),
+    'buy online' => array(
+      'title' => t('Buy products our site'),
       'description' => t('Who can buy the node product.'),
+      'restrict access' => TRUE,
+    ),    
+    'administer uuke alipay configuration' => array(
+      'title' => t('Administer uuke alipay configuration'),
       'restrict access' => TRUE,
     ),
   );
@@ -223,7 +241,8 @@ function uuke_alipay_configue($form, &$form_state) {
   $form['uuke_alipay_service'] = array(
     '#title' => t('支付方法'),
     '#type' => 'radios',
-    '#default_value' => variable_get('uuke_alipay_service', 'create_direct_pay_by_user'),
+    '#default_value' => variable_get('uuke_alipay_service', 'create_partner_trade_by_buyer'),
+    '#description' => t('您需要在支付宝商家服务中申请相关的服务.'),
     '#options' => array(
       'create_direct_pay_by_user' => t('支付宝即时到账交易接口'),
       'create_partner_trade_by_buyer' => t('支付宝纯担保交易接口'),
@@ -257,14 +276,29 @@ function uuke_getHttpResponseGET($url) {
 }
 /**
  * Implements hook_node_view().
+ * @see function uuke_alipay_content_types_setting_form()
  */
 function uuke_alipay_node_view($node, $view_mode, $langcode) {
-	if(isset($node->field_uuke_price)&&$view_mode=='full'){
-		if(!isset($node->field_uuke_price[LANGUAGE_NONE][0]['value'])){
-			drupal_set_message(t('本商品免费或不可出售。'), 'status', FALSE);
-		}else{
-			$node->content['alipay'] = array('#markup'=>l('Pay for it.','node/'.$node->nid.'/alipay'));
+	$uuke_alipay_content_types = unserialize(variable_get('uuke_alipay_content_types', null));
+	//判断拥有价格字段 //isset($node->field_uuke_price)
+	if(in_array($node->type, $uuke_alipay_content_types) && $uuke_alipay_content_types[$node->type]){
+		if($view_mode=='full') {
+			if(!isset($node->field_uuke_price[LANGUAGE_NONE][0]['value'])){
+				drupal_set_message(t('本商品免费或不可出售。'), 'status', FALSE);
+			}else{
+				$node->content['alipay'] = array('#markup'=>l('Pay for it.','node/'.$node->nid.'/alipay'));
+			}
+			 
 		}
-		 
+	}
+
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function uuke_alipay_form_alter(&$form, &$form_state, $form_id) {
+	if($form_id == 'uuke_alipay_content_type_setting') {
+		dpm($form);
 	}
 }
