@@ -523,10 +523,11 @@ function uuke_alipay_order_save($request) {
 	$order_node->field_uuke_alipay_return[$order_node->language][] = array(
 		'value' => serialize($request),//$_GET
 	);
-
-	$order_node->field_uuke_alipay_trade_status[$order_node->language][0]['value'] = array(
-		'value' => $request['trade_status'],
-	);
+	$old_status = $order_node->field_uuke_alipay_trade_status[$order_node->language][0]['value'];
+	if($old_status != $request['trade_status']) {
+		$order_node->field_uuke_alipay_trade_status[$order_node->language][0]['value'] = $request['trade_status'];
+		watchdog('uc_alipay_notify',$out_trade_no.'交易状态改变 '.$old_status.'=>'.$request['trade_status']);
+	}
 	if($order_node = node_submit($order_node)) { // Prepare node for saving
     node_save($order_node);
     drupal_set_message(t("订单:" . l($order_node->title.':'.$product_node->title,'node/'.$order_node->nid) . " 已更新\n"), 'status');
@@ -545,20 +546,17 @@ function uuke_alipay_order_save($request) {
 function uuke_alipay_order_check($product_node,$account=NULL) {
 	global $user;
 	if(!$account) $account = $user;
-
-	$query = db_select('node', 'n');
-	// $query = db_select('field_data_field_app_package_name', 'f');
-	//订单的所属的用户字段
-  $query->join('field_revision_field_uuke_alipay_order_uid','f','n.nid = f.entity_id');
+  $query = db_select('field_data_field_uuke_alipay_product_nid', 'p');
+  $query->join('field_data_field_uuke_alipay_order_uid','f','f.entity_id = p.entity_id');
+  // $query->join('node','n','n.nid = f.entity_id');
   $result = $query
-    ->fields('n', array('nid'))
-    ->condition('n.type ','uuke_alipay_order')
-    ->condition('f.field_uuke_alipay_order_uid_target_id ',$account->uid)
-    ->condition('n.status ',1)
+    ->fields('p', array('entity_id')) //order nid
+    ->condition('p.field_uuke_alipay_product_nid_target_id ',$product_node->nid)
+		->condition('f.field_uuke_alipay_order_uid_target_id',$account->uid)
     ->execute()
     ->fetchAssoc();
   if($result) {
-  	return $result['nid'];//order_nid
+  	return $result['entity_id'];//order_nid
   }else {
   	return FALSE;
   }
