@@ -1,0 +1,565 @@
+<?php
+//trade_status
+// TRADE_FINISHED  交易成功  true（触发通知） 
+// TRADE_SUCCESS  支付成功  true（触发通知） 
+// WAIT_BUYER_PAY  交易创建  false（不触发通知）
+// TRADE_CLOSED  交易关闭  false（不触发通知）
+function uuke_alipay_get_trade_status($trade_status) {
+	switch ($trade_status) {
+		case 0:
+			return '等待付款';//WAIT_BUYER_PAY
+			break;
+		case 1:
+			return '支付成功';//TRADE_SUCCESS
+			break;
+		case 2:
+			return '等待发货';//WAIT_SELLER_SEND_GOODS
+			break;
+		case 3:
+			return '交易成功';//TRADE_FINISHED
+			break;
+		case -1:
+			return '交易关闭';//TRADE_CLOSED
+			break;
+		default:
+			return $trade_status;
+			break;
+	}
+}
+function uuke_alipay_trade_status_in_db($trade_status_string) {
+	switch ($trade_status_string) {
+		case 'WAIT_BUYER_PAY':
+			return 0;
+			break;
+		case 'TRADE_SUCCESS':
+			return 1;
+			break;
+		case 'WAIT_SELLER_SEND_GOODS':
+			return 2;
+			break;
+		case 'TRADE_FINISHED':
+			return 3;
+			break;
+		case 'TRADE_CLOSED':
+			return -1;
+			break;
+		default:
+			return $trade_status_string;//error
+			break;
+	}
+}
+function uuke_alipay_trade_status_to_chinese($trade_status_string) {
+	switch ($trade_status_string) {
+		case 'WAIT_BUYER_PAY':
+			return '等待付款';//
+			break;
+		case 'TRADE_SUCCESS':
+			return '支付成功';//
+			break;
+		case 'WAIT_SELLER_SEND_GOODS':
+			return '等待发货';//
+			break;
+		case 'TRADE_FINISHED':
+			return '交易成功';//
+			break;
+		case 'TRADE_CLOSED':
+			return '交易关闭';//
+			break;		
+		case 'pending':
+			return '等待处理';//
+			break;
+		default:
+			return $trade_status_string;
+			break;
+	}
+}
+/**
+ * Implements hook_node_info().
+ */
+function uuke_alipay_node_info() {
+  return array(
+    'uuke_alipay_order' => array(
+      'name' => t('uuke alipay order'),
+      'base' => 'node_content',
+      'description' => t('uuke alipay order'),
+      // 'has_title' => TRUE,
+      // 'title_label' => 'Title',
+      //'locked' => FALSE,
+    ),
+  );
+}
+/**
+ * Implements hook_menu().
+ */
+function uuke_alipay_menu() {
+	$items = array();
+	$items['node/%node/alipay'] = array(
+		'title' => '',
+		'page callback' => 'uuke_alipay_for_node',
+		'page arguments' => array(1),
+    'type' => MENU_CALLBACK,
+		'access arguments' => array('buy online'),
+	);
+	$items['admin/alipay/configue'] = array(
+		'title' => 'configue alipay',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('uuke_alipay_configue'),
+		'access arguments' => array('administer uuke alipay configuration'),
+	);
+	$items['admin/alipay/configue/content_type'] = array(
+		'title' => 'content type setting',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('uuke_alipay_content_types_setting_form'),
+		'access arguments' => array('administer uuke alipay configuration'),
+   	'file' => 'uuke_alipay.pages.inc',
+	);    
+	$items['alipay/notify'] = array(
+    'title' => 'Order complete',
+    'page callback' => 'uc_alipay_notify',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'file' => 'uc_alipay.pages.inc',
+  );
+  $items['alipay/return'] = array(
+    'title' => 'Order complete',
+    'page callback' => 'uc_alipay_return',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'file' => 'uc_alipay.pages.inc',
+  );	
+  $items['user/%user/paid'] = array(
+		'title' => 'My paid products',
+		'page callback' => 'uuke_alipay_paid_list',
+		'page arguments' => array(1),
+		'access arguments' => array('buy online'),
+    'file' => 'uuke_alipay.pages.inc',
+    'type' => MENU_LOCAL_TASK,
+	);
+	$items['admin/alipay/paid'] = array(
+		'title' => 'Paid products',
+		'page callback' => 'uuke_alipay_paid_list',
+		'page arguments' => array(NUll,TRUE),
+		'access arguments' => array('administer uuke alipay configuration'),
+    'file' => 'uuke_alipay.pages.inc',
+	);
+	return $items;
+}
+/**
+ * disable the node/add/answer page.
+ * or drupal_set_message($message,'error') in callback....XXX
+ * "An answer must be linked to a quetion.
+ * Please go to a question page,unless you really know what you are doing!"
+ */
+function druedu_qa_menu_alter(&$items) {
+  $items['node/add/uuke-alipay-order']['access callback'] = FALSE;
+}
+/**
+ * Implements hook_permission().
+ */
+function uuke_alipay_permission() {
+	 $perms = array(
+    'buy online' => array(
+      'title' => t('Buy products our site'),
+      'description' => t('Who can buy the node product.'),
+      'restrict access' => TRUE,
+    ),    
+    'administer uuke alipay configuration' => array(
+      'title' => t('Administer uuke alipay configuration'),
+      'restrict access' => TRUE,
+    ),
+  );
+  return $perms;
+}
+
+
+function uuke_alipay_for_node($product_node) {
+	global $user;
+	if(!$user->uid) {
+		drupal_set_message(t('请登录后购买!'), 'status', FALSE);
+		drupal_goto('user/login');
+	}
+	if(!isset($product_node->field_uuke_price[LANGUAGE_NONE][0]['value'])){
+		drupal_set_message(t('本商品免费或不可出售。'), 'status', FALSE);
+		drupal_goto('node/'.$product_node->nid);
+	}
+
+	$price = $product_node->field_uuke_price[LANGUAGE_NONE][0]['value'];
+	$base_path = url(NULL, array('absolute' => TRUE)) . (variable_get('clean_url', 0) ? '' : '?q=');
+	$service = variable_get('uuke_alipay_service', '');
+
+  	//如果还有未完成的订单，不需要重复创建多个订单，对于一个商品
+	if($order_nid = uuke_alipay_order_check($product_node,$account=NULL)) {
+		//您的订单已生成，请点击付款去相应页面。
+	  $out_trade_no = str_pad($order_nid, 9, "0", STR_PAD_LEFT);//118854555 //000000001
+		// dpm(t('您的订单:'.$out_trade_no.'已生成，请点击付款去相应页面。'));
+		$order_node = node_load($order_nid);
+		$trade_status = $order_node->field_uuke_alipay_trade_status[LANGUAGE_NONE][0]['value'];
+		$pay_link = $order_node->field_uuke_alipay_link[LANGUAGE_NONE][0]['value'];
+		drupal_set_message(t('您的订单'.l($out_trade_no.':'.$product_node->title,'node/'.$order_nid).'已生成，请点击'.l('付款',$pay_link).'跳转到支付页面。订单状态为：'.uuke_alipay_trade_status_to_chinese($trade_status)) );
+	}else{
+		//生成本站订单begin
+		$order_node = new stdClass();
+		$order_node->type = 'uuke_alipay_order';
+		$order_node->title    = 'pending';
+		$order_node->language = LANGUAGE_NONE; // Or e.g. 'en' if locale is enabled
+
+		$order_node->uid = $user->uid;
+		$order_node->field_uuke_alipay_order_uid[LANGUAGE_NONE][] = array(
+			'target_id' => $user->uid,
+		);
+		$order_node->field_uuke_alipay_product_nid[LANGUAGE_NONE][] = array(
+			'target_id' => $product_node->nid,
+		);
+		$order_node->field_uuke_alipay_product_title[LANGUAGE_NONE][] = array(
+			'value' => $product_node->title,
+		);  
+		// $order_node->field_uuke_alipay_trade_no[LANGUAGE_NONE][] = array(
+		// 	'value' => $request['trade_no'],
+		// );
+		$order_node->field_uuke_alipay_product_type[LANGUAGE_NONE][] = array(
+			'value' => $product_node->type,
+		);
+		$order_node->field_uuke_alipay_product_price[LANGUAGE_NONE][] = array(
+			'value' => $price,
+		);
+		// $order_node->field_uuke_alipay_quantity[LANGUAGE_NONE][] = array(
+		// 	'value' => $request['quantity'],
+		// );
+		// $order_node->field_uuke_alipay_return[LANGUAGE_NONE][] = array(
+		// 	'value' => serialize($request),//$_GET
+		// );
+
+		$order_node->field_uuke_alipay_trade_status[LANGUAGE_NONE][] = array(
+			'value' => 'pending',//$request['trade_status']
+		);
+		if($order_node = node_submit($order_node)) { // Prepare node for saving
+	    node_save($order_node);
+	    $order_nid = $order_node->nid;
+	    $out_trade_no = str_pad($order_nid, 9, "0", STR_PAD_LEFT);//118854555 //000000001
+	    // drupal_set_message(t("订单:" . l($order_node->title,'node/'.$order_nid) . " 已创建\n"), 'status');
+		}else{
+			drupal_set_message(t('fiald to create order node'), 'error');
+			drupal_goto('node/'.$product_node->nid);
+		}	//生成订单 end 
+	}
+	//支付宝即时到账交易接口参数
+	$parameter = array(
+  	"service"         => variable_get('uuke_alipay_service', 'create_direct_pay_by_user'),  //交易类型
+		"partner"         => variable_get('uuke_alipay_partner', ''),         //合作商户号
+		"return_url"      => $base_path.'alipay/return',      //同步返回
+		"notify_url"      => $base_path.'alipay/notify',      //异步返回
+		"_input_charset"  =>  'UTF-8',  //字符集，默认为GBK
+		"subject"         => variable_get('site_name', "zhupou.cn"),       //商品名称，必填
+		"body"            => variable_get('site_name', "zhupou.cn"),        //商品描述，必填,这里用网站名字代替
+		"out_trade_no"    => $out_trade_no,//'20130409_01',//date('Ymd').'_'.$order_id,     //商品外部交易号，必填（保证唯一性）
+		"total_fee"       => $price,//$order->order_total,           //商品单价，必填（价格不能为0）
+		"payment_type"    => "1",               //默认为1,不需要修改
+		"show_url"        => $base_path,        //商品相关网站
+		"seller_email"    => variable_get('uuke_alipay_seller_email', ''),     //卖家邮箱，必填
+  );
+  //支付宝即时到账交易接口参数 end
+  //支付宝纯担保交易接口
+	if($service == 'create_partner_trade_by_buyer') {
+		 //商品数量
+    $quantity = "1";
+    //必填，建议默认为1，不改变值，把一次交易看成是一次下订单而非购买一件商品
+    //物流费用
+    $logistics_fee = "0.00";
+    //必填，即运费
+    //物流类型
+    $logistics_type = "EXPRESS";
+    //必填，三个值可选：EXPRESS（快递）、POST（平邮）、EMS（EMS）
+    //物流支付方式
+    $logistics_payment = "SELLER_PAY";
+    //必填，两个值可选：SELLER_PAY（卖家承担运费）、BUYER_PAY（买家承担运费）
+    //订单描述
+    global $user;
+		$parameter = array(
+			"service" => $service,
+			"partner" => variable_get('uuke_alipay_partner', ''),
+			"payment_type"    => "1",               //默认为1,不需要修改
+			"return_url"      => $base_path.'alipay/return',      //同步返回
+			"notify_url"      => $base_path.'alipay/notify',      //异步返回
+			"seller_email"    => variable_get('uuke_alipay_seller_email', ''),     //卖家邮箱，必填
+			"out_trade_no"    => $out_trade_no,//time().'_n'.$node->nid.'_u'.$user->uid,//1365500773_n1_u1,     //商品外部交易号，必填（保证唯一性）.time()
+			"price"	=> $product_node->field_uuke_price[LANGUAGE_NONE][0]['value'],
+			"quantity"	=> $quantity,
+			"logistics_fee"	=> $logistics_fee,
+			"logistics_type"	=> $logistics_type,
+			"logistics_payment"	=> $logistics_payment,
+			
+			"subject"         => $product_node->title,       //商品名称，必填
+			"body"            => $base_path.'node/'.$product_node->nid,        //商品描述，必填,这里用网站名字代替
+			"show_url"        => $base_path.'node/'.$product_node->nid,        //商品相关网站
+			// "receive_name"	=> $receive_name,
+			// "receive_address"	=> $receive_address,
+			// "receive_zip"	=> $receive_zip,
+			// "receive_phone"	=> $receive_phone,
+			// "receive_mobile"	=> $receive_mobile,
+			"_input_charset"  =>  'UTF-8',  //字符集，默认为GBK
+	);
+
+	}
+	module_load_include('inc', 'uuke_alipay', 'uc_alipay_service');
+	$security_code = variable_get('uuke_alipay_key', '');
+
+	$sign_type = "MD5";
+	$alipay = new alipay_service($parameter,$security_code,$sign_type);
+  $link = $alipay->create_url();
+  $order_node = node_load($order_nid);
+  if(!isset($order_node->field_uuke_alipay_link[LANGUAGE_NONE][0]['value'])) {
+		$order_node->field_uuke_alipay_link[LANGUAGE_NONE][0]['value'] = $link;
+		node_save($order_node);
+  }
+  dpm($link);
+  drupal_goto($link);
+  return '';
+}
+function send_goods_confirm_link($trade_no,$out_trade_no) {
+	/**************************请求参数**************************/
+
+	        //支付宝交易号
+	        // $trade_no = '2013041040251316';
+	        //必填
+
+	        //物流公司名称
+	        $logistics_name = '悠客网络快传';// uuke_fast_EXPRES
+	        //必填
+
+	        //物流发货单号
+
+	        $invoice_no = $out_trade_no;//'1365556470_n1_u1';
+	        //物流运输类型
+	        $transport_type = 'EXPRESS';
+	        //三个值可选：POST（平邮）、EXPRESS（快递）、EMS（EMS）
+
+
+	/************************************************************/
+
+	//构造要请求的参数数组，无需改动
+	$parameter = array(
+			"service" => "send_goods_confirm_by_platform",
+			"partner" => variable_get('uuke_alipay_partner', ''),
+			"trade_no"	=> $trade_no,
+			"logistics_name"	=> $logistics_name,
+			"invoice_no"	=> $invoice_no,
+			"transport_type"	=> $transport_type,
+			"_input_charset"  =>  'UTF-8',  //字符集，默认为GBK
+	);
+
+	//建立请求
+	module_load_include('inc', 'uuke_alipay', 'uc_alipay_service');
+	$security_code = variable_get('uuke_alipay_key', '');
+
+	$sign_type = "MD5";
+	$alipay = new alipay_service($parameter,$security_code,$sign_type);
+  $link=$alipay->create_url();
+  return $link;
+}
+
+function uuke_alipay_configue($form, &$form_state) {
+	$form['uuke_alipay_partner'] = array(
+    '#type' => 'textfield',
+    '#title' => t('支付宝的PID'),
+    '#description' => t('合作者身份-你的支付宝商家服务中的合作者身份.'),
+    '#default_value' => variable_get('uuke_alipay_partner', ''),
+    '#size' => 16,
+  );
+  $form['uuke_alipay_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('交易安全校验码'),
+    '#description' => t('你的支付宝商家服务中的交易安全校验码.'),
+    '#default_value' => variable_get('uuke_alipay_key', ''),
+    '#size' => 16,
+  );
+  $form['uuke_alipay_seller_email'] = array(
+    '#type' => 'textfield',
+    '#title' => t('支付宝帐户.'),
+    '#description' => t('卖家支付宝帐户.'),
+    '#default_value' => variable_get('uuke_alipay_seller_email', ''),
+  );
+  $form['uuke_alipay_service'] = array(
+    '#title' => t('支付方法'),
+    '#type' => 'radios',
+    '#default_value' => variable_get('uuke_alipay_service', 'create_partner_trade_by_buyer'),
+    '#description' => t('您需要在支付宝商家服务中申请相关的服务.'),
+    '#options' => array(
+      'create_direct_pay_by_user' => t('支付宝即时到账交易接口'),
+      'create_partner_trade_by_buyer' => t('支付宝纯担保交易接口'),
+    )
+  );  
+  return system_settings_form($form);
+}
+
+/**
+ * 远程获取数据，GET模式
+ * 注意：
+ * 1.使用Crul需要修改服务器中php.ini文件的设置，找到php_curl.dll去掉前面的";"就行了
+ * 2.文件夹中cacert.pem是SSL证书请保证其路径有效，目前默认路径是：getcwd().'\\cacert.pem'
+ * @param $url 指定URL完整路径地址
+ * @param $cacert_url 指定当前工作目录绝对路径
+ * return 远程输出的数据
+ */
+function uuke_getHttpResponseGET($url) {
+	$curl = curl_init($url);
+	curl_setopt($curl, CURLOPT_HEADER, 0 ); // 过滤HTTP头
+	curl_setopt($curl,CURLOPT_RETURNTRANSFER, 1);// 显示输出结果
+	curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);//SSL证书认证
+	curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);//严格认证
+	$cacert_url = DRUPAL_ROOT.'/'.drupal_get_path('module', 'uuke_alipay').'/cacert.pem';
+	curl_setopt($curl, CURLOPT_CAINFO,$cacert_url);//证书地址
+	$responseText = curl_exec($curl);
+	// dvm(curl_error($curl));//如果执行curl过程中出现异常，可打开此开关，以便查看异常内容
+	watchdog('curl_error', $cacert_url.':<pre>'.print_r(curl_error($curl),TRUE));
+	curl_close($curl);
+	return $responseText;
+}
+/**
+ * Implements hook_node_view().
+ * @see function uuke_alipay_content_types_setting_form()
+ */
+function uuke_alipay_node_view($node, $view_mode, $langcode) {
+	$uuke_alipay_content_types = unserialize(variable_get('uuke_alipay_content_types', null));
+	//判断拥有价格字段 //isset($node->field_uuke_price)
+	if(in_array($node->type, $uuke_alipay_content_types) && $uuke_alipay_content_types[$node->type]){
+		if($view_mode=='full') {
+			if(!isset($node->field_uuke_price[LANGUAGE_NONE][0]['value'])){
+				drupal_set_message(t('本商品免费或不可出售。'), 'status', FALSE);
+			}else{
+				//TODO:判断是否已购买,如果购买了，显示下载链接已安装，若无，显示购买
+				$show = FALSE;
+				if($order_nid = uuke_alipay_order_check($node,$account=NULL)) {
+					//您的订单已生成，请点击付款去相应页面。
+					$order_node = node_load($order_nid);
+					$trade_status = $order_node->field_uuke_alipay_trade_status[LANGUAGE_NONE][0]['value'];
+					$pay_link = $order_node->field_uuke_alipay_link[LANGUAGE_NONE][0]['value'];
+
+				  $out_trade_no = str_pad($order_nid, 9, "0", STR_PAD_LEFT);//118854555 //000000001
+					if($trade_status == 'WAIT_BUYER_PAY' || $trade_status == 'pending'){
+						drupal_set_message(t('您的'.$node->title.'订单'.$out_trade_no.'已生成，请点击'.l('付款',$pay_link).'跳转到支付页面。订单状态为：'.uuke_alipay_trade_status_to_chinese($trade_status)) );
+						// drupal_set_message(t('您的'.$node->title.'订单'.l($out_trade_no,'node/'.$order_nid).'已生成，请点击'.l('付款',$pay_link).'跳转到支付页面。订单状态为：'.uuke_alipay_trade_status_to_chinese($trade_status)) );
+						$show = TRUE;
+					}else{
+						drupal_set_message('您的'.$node->title.'订单'.$out_trade_no.'付款成功！已购买！');
+						// drupal_set_message('您的'.$node->title.'订单'.l($out_trade_no,'node/'.$order_nid).'付款成功！ 状态为：'.uuke_alipay_trade_status_to_chinese($trade_status));
+					}
+				}else{
+					$show = TRUE;
+				}
+				if($show) {
+					$base_path = url(NULL, array('absolute' => TRUE)) . (variable_get('clean_url', 0) ? '' : '?q=');
+					$node->content['alipay'] =  array(
+						'#type' => 'button',
+						'#value' => t('Pay for it|paid|installed'),
+						// '#prefix' => '<a herf="'.$base_path.'node/'.$node->nid.'">',
+						// '#suffix' => '</a>', 
+						'#weight' => -19,
+					);
+					$node->content['alipay_test'] = array('#markup'=>l('Pay for it.','node/'.$node->nid.'/alipay'));
+
+				}
+			}
+			 
+		}
+	}
+
+}
+
+/**
+ * 判断某节点商品是否购买
+ * @return TRUE is paid.
+ */
+function uuke_alipay_is_paid($nid) {
+
+}
+/**
+ *  获取已购买的商品，by user or content_type/product_type
+ * @return array(nid1,nid2)
+ */
+function uuke_alipay_all_paid($account=NULL,$content_type='app') {
+
+}
+
+//REQUEST form alipay update
+function uuke_alipay_order_save($request) {
+	$out_trade_no   = $request['out_trade_no'];   //获取支付宝传递过来的订单号
+	$order_node = node_load($out_trade_no-0);
+	$product_node = node_load($order_node->field_uuke_alipay_product_nid[LANGUAGE_NONE][0]['target_id']);
+	//订单一定存在
+	// if(!uuke_alipay_order_check($product_node,$account=NULL)) {
+	// 	$order_node = new stdClass();
+	// 	$order_node->type = 'uuke_alipay_order';
+	// }
+	//else update the exist one.
+	$nid = $order_node->nid;
+	$uid = $order_node->uid;
+	$buy_timestamp = $order_node->created;
+
+	$order_node->title    = $request['out_trade_no'];
+	$order_node->language = LANGUAGE_NONE; // Or e.g. 'en' if locale is enabled
+
+	$order_node->body[$order_node->language][0]['value']   = $request['body'];//$_REQUEST['body'];
+	$order_node->body[$order_node->language][0]['summary'] = text_summary($request['body']);
+	$order_node->body[$order_node->language][0]['format']  = 'filtered_html';
+
+	// $node->field_uuke_alipay_product_nid[$order_node->language][] = array(
+	// 	'target_id' => $product_node->nid,
+	// );
+	// $order_node->field_uuke_alipay_product_title[$order_node->language][] = array(
+	// 	'value' => $product_node->title,
+	// );  
+	$order_node->field_uuke_alipay_trade_no[$order_node->language][] = array(
+		'value' => $request['trade_no'],
+	);
+	// $node->field_uuke_alipay_product_type[$order_node->language][] = array(
+	// 	'value' => $product_node->type,
+	// );
+	$order_node->field_uuke_alipay_product_price[$order_node->language][] = array(
+		'value' => $request['price'],
+	);
+	$order_node->field_uuke_alipay_quantity[$order_node->language][] = array(
+		'value' => $request['quantity'],
+	);
+	$order_node->field_uuke_alipay_return[$order_node->language][] = array(
+		'value' => serialize($request),//$_GET
+	);
+
+	$order_node->field_uuke_alipay_trade_status[$order_node->language][0]['value'] = array(
+		'value' => $request['trade_status'],
+	);
+	if($order_node = node_submit($order_node)) { // Prepare node for saving
+    node_save($order_node);
+    drupal_set_message(t("订单:" . l($order_node->title.':'.$product_node->title,'node/'.$order_node->nid) . " 已更新\n"), 'status');
+    return $order_node;
+	}else{
+		drupal_set_message(t('fiald to update order node'), 'error');
+		return array();
+	}
+	// create a now order node end
+}
+/**
+ * check if the user has orders of the product.
+ * 判断是够已经有这个商品的历史订单了，如果有，返回订单nid，
+ * 不再为该用户创建新的订单，用户可以在该订单上完成该产品的付款操作。
+ */
+function uuke_alipay_order_check($product_node,$account=NULL) {
+	global $user;
+	if(!$account) $account = $user;
+
+	$query = db_select('node', 'n');
+	// $query = db_select('field_data_field_app_package_name', 'f');
+	//订单的所属的用户字段
+  $query->join('field_revision_field_uuke_alipay_order_uid','f','n.nid = f.entity_id');
+  $result = $query
+    ->fields('n', array('nid'))
+    ->condition('n.type ','uuke_alipay_order')
+    ->condition('f.field_uuke_alipay_order_uid_target_id ',$account->uid)
+    ->condition('n.status ',1)
+    ->execute()
+    ->fetchAssoc();
+  if($result) {
+  	return $result['nid'];//order_nid
+  }else {
+  	return FALSE;
+  }
+}
