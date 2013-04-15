@@ -138,12 +138,13 @@ function uuke_alipay_paid_list($account=NUll,$admin=FALSE) {
   global $user;
   if(!$account)  $account = $user;
   //buy online       
-  $header = array(t('支付宝交易号'), t('商家订单号'),t('卖家商品名称'), t('价格'), t('数量'), t('下单时间'), t('付款时间'));
+  $header = array(t('支付宝交易号'), t('商家订单号'),t('卖家商品名称'),t('商品类型'), t('价格'), t('数量'), t('下单时间'), t('最近操作时间'), t('交易状态'));
   // $header = array(t('Name'), t('Weight'), array('data' => t('Operations'), 'colspan' => 2));
   $rows = array();
   $query = db_select('uuke_alipay', 'c')
-  ->fields('c')
-  ->orderBy('paid_time', 'DESC');
+    ->fields('c')
+    // ->condition('status',1)
+    ->orderBy('paid_time', 'DESC');
   if(!$admin){
     $query = $query
       ->condition('uid', $account->uid);
@@ -157,13 +158,15 @@ function uuke_alipay_paid_list($account=NUll,$admin=FALSE) {
     $product_node  = node_load($record['nid']);
     $title = truncate_utf8($product_node->title, 20, $wordsafe = FALSE, $add_ellipsis = 1, $min_wordsafe_length = 1);
     $row[] = $record['trade_no'];//支付宝交易号
-    $row[] = $record['out_trade_no'];//商家订单号    
+    $row[] = l($record['out_trade_no'],'node/'.$record['rid']);;//商家订单号    
     $row[] = l($title,'node/'.$record['nid']);//卖家商品名称   
+    $row[] = $record['type'];//商品类型 
     // $row[] = $record['uid'];// 
     $row[] = $record['price'];//价格    
     $row[] = $record['quantity'];//数量
     $row[] = date('Y-m-d h:i:m',$record['buy_time']);//xia单时间    
-    $row[] = date('Y-m-d h:i:m',$record['paid_time']);//付款时间
+    $row[] = date('Y-m-d h:i:m',$record['paid_time']);//最近操作时间
+    $row[] = uuke_alipay_get_trade_status($record['status']);//交易状态  
     $rows[] = array('data' => $row, 'class' => array(''));
   }
 // CREATE TABLE IF NOT EXISTS `uuke_alipay` (

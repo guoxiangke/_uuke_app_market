@@ -1,4 +1,68 @@
 <?php
+//trade_status
+// TRADE_FINISHED  交易成功  true（触发通知） 
+// TRADE_SUCCESS  支付成功  true（触发通知） 
+// WAIT_BUYER_PAY  交易创建  false（不触发通知）
+// TRADE_CLOSED  交易关闭  false（不触发通知）
+function uuke_alipay_get_trade_status($trade_status) {
+	switch ($trade_status) {
+		case 0:
+			return '等待付款';//WAIT_BUYER_PAY
+			break;
+		case 1:
+			return '支付成功';//TRADE_SUCCESS
+			break;
+		case 2:
+			return '等待发货';//WAIT_SELLER_SEND_GOODS
+			break;
+		case 3:
+			return '交易成功';//TRADE_FINISHED
+			break;
+		case -1:
+			return '交易关闭';//TRADE_CLOSED
+			break;
+		default:
+			return $trade_status;
+			break;
+	}
+}
+function uuke_alipay_trade_status_in_db($trade_status_string) {
+	switch ($trade_status_string) {
+		case 'WAIT_BUYER_PAY':
+			return 0;
+			break;
+		case 'TRADE_SUCCESS':
+			return 1;
+			break;
+		case 'WAIT_SELLER_SEND_GOODS':
+			return 2;
+			break;
+		case 'TRADE_FINISHED':
+			return 3;
+			break;
+		case 'TRADE_CLOSED':
+			return -1;
+			break;
+		default:
+			return $trade_status_string;//error
+			break;
+	}
+}
+/**
+ * Implements hook_node_info().
+ */
+function uuke_alipay_node_info() {
+  return array(
+    'uuke_alipay_order' => array(
+      'name' => t('uuke alipay order'),
+      'base' => 'node_content',
+      'description' => t('uuke alipay order'),
+      // 'has_title' => TRUE,
+      // 'title_label' => 'Title',
+      //'locked' => FALSE,
+    ),
+  );
+}
 /**
  * Implements hook_menu().
  */
@@ -8,16 +72,17 @@ function uuke_alipay_menu() {
 		'title' => '',
 		'page callback' => 'uuke_alipay_for_node',
 		'page arguments' => array(1),
+    'type' => MENU_CALLBACK,
 		'access arguments' => array('buy online'),
 	);
 	$items['admin/alipay/configue'] = array(
-		'title' => '',
+		'title' => 'configue alipay',
 		'page callback' => 'drupal_get_form',
 		'page arguments' => array('uuke_alipay_configue'),
 		'access arguments' => array('administer uuke alipay configuration'),
 	);
 	$items['admin/alipay/configue/content_type'] = array(
-		'title' => '',
+		'title' => 'content type setting',
 		'page callback' => 'drupal_get_form',
 		'page arguments' => array('uuke_alipay_content_types_setting_form'),
 		'access arguments' => array('administer uuke alipay configuration'),
@@ -53,7 +118,15 @@ function uuke_alipay_menu() {
 	);
 	return $items;
 }
-
+/**
+ * disable the node/add/answer page.
+ * or drupal_set_message($message,'error') in callback....XXX
+ * "An answer must be linked to a quetion.
+ * Please go to a question page,unless you really know what you are doing!"
+ */
+function druedu_qa_menu_alter(&$items) {
+  $items['node/add/uuke-alipay-order']['access callback'] = FALSE;
+}
 /**
  * Implements hook_permission().
  */
@@ -74,6 +147,11 @@ function uuke_alipay_permission() {
 
 
 function uuke_alipay_for_node($node) {
+	global $user;
+	if(!$user->uid) {
+		drupal_set_message(t('请登录后购买!'), 'status', FALSE);
+		drupal_goto('user/login');
+	}
 	if(!isset($node->field_uuke_price[LANGUAGE_NONE][0]['value'])){
 		drupal_set_message(t('本商品免费或不可出售。'), 'status', FALSE);
 		drupal_goto('node/'.$node->nid);
@@ -295,10 +373,16 @@ function uuke_alipay_node_view($node, $view_mode, $langcode) {
 }
 
 /**
- * Implements hook_form_alter().
+ * 判断某节点商品是否购买
+ * @return TRUE is paid.
  */
-function uuke_alipay_form_alter(&$form, &$form_state, $form_id) {
-	if($form_id == 'uuke_alipay_content_type_setting') {
-		dpm($form);
-	}
+function uuke_alipay_is_paid($nid) {
+
+}
+/**
+ *  获取已购买的商品，by user or content_type/product_type
+ * @return array(nid1,nid2)
+ */
+function uuke_alipay_all_paid($account=NULL,$content_type='app') {
+
 }
