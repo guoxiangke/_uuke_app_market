@@ -449,14 +449,11 @@ function uuke_alipay_node_view($node, $view_mode, $langcode) {
 				if($show) {
 					$base_path = url(NULL, array('absolute' => TRUE)) . (variable_get('clean_url', 0) ? '' : '?q=');
 					$node->content['alipay'] =  array(
-						'#type' => 'button',
-						'#value' => t('Pay for it|paid|installed'),
-						// '#prefix' => '<a herf="'.$base_path.'node/'.$node->nid.'">',
-						// '#suffix' => '</a>', 
+						'#markup' => t('Pay for it|paid|installed'),
+						'#prefix' => '<a class= "button" href="'.$base_path.'node/'.$node->nid.'/alipay">',
+						'#suffix' => '</a>', 
 						'#weight' => -19,
 					);
-					$node->content['alipay_test'] = array('#markup'=>l('Pay for it.','node/'.$node->nid.'/alipay'));
-
 				}
 			}
 			 
