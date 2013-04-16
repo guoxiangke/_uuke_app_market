@@ -98,7 +98,7 @@ function uuke_alipay_menu() {
 		'page callback' => 'uuke_alipay_for_node',
 		'page arguments' => array(1),
     'type' => MENU_CALLBACK,
-		'access arguments' => array('buy online'),
+		'access arguments' => array('access content'),
 	);
 	$items['admin/alipay/configue'] = array(
 		'title' => 'configue alipay',
@@ -115,33 +115,18 @@ function uuke_alipay_menu() {
 	);    
 	$items['alipay/notify'] = array(
     'title' => 'Order complete',
-    'page callback' => 'uc_alipay_notify',
+    'page callback' => 'uuke_alipay_notify',
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
-    'file' => 'uc_alipay.pages.inc',
+    'file' => 'uuke_alipay.pages.inc',
   );
   $items['alipay/return'] = array(
     'title' => 'Order complete',
-    'page callback' => 'uc_alipay_return',
+    'page callback' => 'uuke_alipay_return',
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
-    'file' => 'uc_alipay.pages.inc',
-  );	
-  $items['user/%user/paid'] = array(
-		'title' => 'My paid products',
-		'page callback' => 'uuke_alipay_paid_list',
-		'page arguments' => array(1),
-		'access arguments' => array('buy online'),
     'file' => 'uuke_alipay.pages.inc',
-    'type' => MENU_LOCAL_TASK,
-	);
-	$items['admin/alipay/paid'] = array(
-		'title' => 'Paid products',
-		'page callback' => 'uuke_alipay_paid_list',
-		'page arguments' => array(NUll,TRUE),
-		'access arguments' => array('administer uuke alipay configuration'),
-    'file' => 'uuke_alipay.pages.inc',
-	);
+  );
 	return $items;
 }
 /**
@@ -158,11 +143,6 @@ function druedu_qa_menu_alter(&$items) {
  */
 function uuke_alipay_permission() {
 	 $perms = array(
-    'buy online' => array(
-      'title' => t('Buy products our site'),
-      'description' => t('Who can buy the node product.'),
-      'restrict access' => TRUE,
-    ),    
     'administer uuke alipay configuration' => array(
       'title' => t('Administer uuke alipay configuration'),
       'restrict access' => TRUE,
@@ -300,7 +280,7 @@ function uuke_alipay_for_node($product_node) {
 	);
 
 	}
-	module_load_include('inc', 'uuke_alipay', 'uc_alipay_service');
+	module_load_include('inc', 'uuke_alipay', 'uuke_alipay_service');
 	$security_code = variable_get('uuke_alipay_key', '');
 
 	$sign_type = "MD5";
@@ -348,7 +328,7 @@ function send_goods_confirm_link($trade_no,$out_trade_no) {
 	);
 
 	//建立请求
-	module_load_include('inc', 'uuke_alipay', 'uc_alipay_service');
+	module_load_include('inc', 'uuke_alipay', 'uuke_alipay_service');
 	$security_code = variable_get('uuke_alipay_key', '');
 
 	$sign_type = "MD5";
@@ -523,7 +503,7 @@ function uuke_alipay_order_save($request) {
 	$old_status = $order_node->field_uuke_alipay_trade_status[$order_node->language][0]['value'];
 	if($old_status != $request['trade_status']) {
 		$order_node->field_uuke_alipay_trade_status[$order_node->language][0]['value'] = $request['trade_status'];
-		watchdog('uc_alipay_notify',$out_trade_no.'交易状态改变 '.$old_status.'=>'.$request['trade_status']);
+		watchdog('uuke_alipay_notify',$out_trade_no.'交易状态改变 '.$old_status.'=>'.$request['trade_status']);
 	}
 	if($order_node = node_submit($order_node)) { // Prepare node for saving
     node_save($order_node);
