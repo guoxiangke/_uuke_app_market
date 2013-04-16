@@ -1,4 +1,39 @@
 <?php
+
+function uuke_alipay_configue_form($form, &$form_state) {
+  $form['uuke_alipay_partner'] = array(
+    '#type' => 'textfield',
+    '#title' => t('支付宝的PID'),
+    '#description' => t('合作者身份-你的支付宝商家服务中的合作者身份.'),
+    // '#default_value' => variable_get('uuke_alipay_partner', ''),
+    '#size' => 16,
+  );
+  $form['uuke_alipay_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('交易安全校验码'),
+    '#description' => t('你的支付宝商家服务中的交易安全校验码.'),
+    // '#default_value' => variable_get('uuke_alipay_key', ''),
+    '#size' => 16,
+  );
+  $form['uuke_alipay_seller_email'] = array(
+    '#type' => 'textfield',
+    '#title' => t('支付宝帐户.'),
+    '#description' => t('卖家支付宝帐户.'),
+    // '#default_value' => variable_get('uuke_alipay_seller_email', ''),
+  );
+  $form['uuke_alipay_service'] = array(
+    '#title' => t('支付方法'),
+    '#type' => 'radios',
+    '#default_value' => variable_get('uuke_alipay_service', 'create_partner_trade_by_buyer'),
+    '#description' => t('您需要在支付宝商家服务中申请相关的服务.'),
+    '#options' => array(
+      'create_direct_pay_by_user' => t('支付宝即时到账交易接口'),
+      'create_partner_trade_by_buyer' => t('支付宝纯担保交易接口'),
+    )
+  );  
+  return system_settings_form($form);
+}
+
 /**
  * 
  * 
@@ -51,7 +86,6 @@ function uuke_alipay_content_types_setting_form_submit($form, &$form_state){
 	if(variable_get('uuke_alipay_content_types', null)==$synch_types){
   	drupal_set_message(t('设置未更改！'),'status');
 	}else{
-    dpm($setting,'$setting');
 	  variable_set('uuke_alipay_content_types', $synch_types);
     foreach ($setting as $content_type => $value) {
       $data = array(
@@ -191,7 +225,6 @@ function uuke_alipay_content_types_setting_form_submit($form, &$form_state){
           return;
           //log_result ("verify_failed");
       }
-      // $trade_status_in_db = uuke_alipay_trade_status_in_db($trade_status);//0 1 2 3 -1
       // $receive_name    =$_POST['receive_name'];    //获取收货人姓名
       // $receive_address =$_POST['receive_address']; //获取收货人地址
       // $receive_zip     =$_POST['receive_zip'];     //获取收货人邮编
@@ -269,7 +302,6 @@ function uuke_alipay_return() {
   $trade_no =  $_GET['trade_no'];
   $trade_status = $_GET['trade_status'];
   // $body = $_GET['body'];
-  // $trade_status_in_db = uuke_alipay_trade_status_in_db($trade_status);//0 1 2 3 -1
   //执行自动发货 begin
   $send_goods_confirm_link = send_goods_confirm_link($trade_no,$out_trade_no);
   //https://www.alipay.com/cooperate/gateway.do?_input_charset=UTF-8&invoice_no=1365556470_n1_u1&logistics_name=uuke_EXPRESS&partner=2088901533144817&service=send_goods_confirm_by_platform&trade_no=2013041040251316&transport_type=EXPRESS&sign=1700a5b303e8b6954df982e7ccaff52a&sign_type=MD5
