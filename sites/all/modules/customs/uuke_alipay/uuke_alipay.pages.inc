@@ -216,6 +216,7 @@ function uuke_alipay_content_types_setting_form_submit($form, &$form_state){
         'TRADE_FINISHED',
         'TRADE_SUCCESS',
         'WAIT_SELLER_SEND_GOODS',
+        'WAIT_BUYER_CONFIRM_GOODS'
         'TRADE_CLOSED',
       );
       if(!in_array($trade_status,$trade_status_array)) {
@@ -311,7 +312,7 @@ function uuke_alipay_return() {
     if($trade_status == 'WAIT_SELLER_SEND_GOODS') {
       // create a now order node begin
       $request = $_GET;
-      
+
       $order = uuke_alipay_order_save($request);
   //执行自动发货 begin
   uuke_alipay_auto_send_goods($trade_no,$out_trade_no);
@@ -380,13 +381,14 @@ function uuke_alipay_return() {
       $veryfy_result = $this->get_verify($veryfy_url);
       $post          = $this->para_filter($_POST);
       $sort_post     = $this->arg_sort($post);
+      $arg ='';
       while (list ($key, $val) = each ($sort_post)) {
         $arg.=$key."=".$val."&";
       }
       $prestr = substr($arg,0,count($arg)-2);  //去掉最后一个&号
       $this->mysign = $this->sign($prestr.$this->security_code);
       //log_result("notify_url_log:sign=".$_POST["sign"]."&mysign=".$this->mysign."&".$this->charset_decode(implode(",",$_POST),$this->_input_charset ));
-      if (eregi("true$",$veryfy_result) && $this->mysign == $_POST["sign"])  {
+      if (preg_match("/true$/",$veryfy_result) && $this->mysign == $_POST["sign"])  {
         return true;
       } else return false;
     }
@@ -445,6 +447,7 @@ function uuke_alipay_return() {
         }
         fclose($fp);
         $info = implode(",",$info);
+        $arg ='';
         while (list ($key, $val) = each ($_POST)) {
           $arg.=$key."=".$val."&";
         }

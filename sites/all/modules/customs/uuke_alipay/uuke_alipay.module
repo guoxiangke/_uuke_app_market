@@ -26,6 +26,9 @@ function uuke_alipay_trade_status_to_chinese($trade_status_string) {
 		case 'pending':
 			return '等待处理';//
 			break;
+		case 'WAIT_BUYER_CONFIRM_GOODS':
+		return '等待确认收货';//
+			break;
 		default:
 			return $trade_status_string;
 			break;
@@ -271,7 +274,7 @@ function uuke_alipay_node_view($node, $view_mode, $langcode) {
 				  $out_trade_no = str_pad($order_nid, 9, "0", STR_PAD_LEFT);//118854555 //000000001
 				  dpm($trade_status);
 					if($trade_status == '等待付款' || $trade_status == '等待处理'){
-						drupal_set_message(t('您的'.$node->title.'订单'.$out_trade_no.'已生成，请点击'.l('付款',$pay_link).'跳转到支付页面。订单状态为：'.uuke_alipay_trade_status_to_chinese($trade_status)) );
+						drupal_set_message(t('您的"'.$node->title.'"订单'.$out_trade_no.'已生成，请点击'.l('付款',$pay_link).'跳转到支付页面。订单状态为：'.uuke_alipay_trade_status_to_chinese($trade_status)) );
 						// drupal_set_message(t('您的'.$node->title.'订单'.l($out_trade_no,'node/'.$order_nid).'已生成，请点击'.l('付款',$pay_link).'跳转到支付页面。订单状态为：'.uuke_alipay_trade_status_to_chinese($trade_status)) );
 						$show = TRUE;
 					}else{
