@@ -162,6 +162,7 @@ function uuke_alipay_views_default_views() {
 		$handler->display->display_options['menu']['name'] = 'user-menu';
 		$handler->display->display_options['menu']['context'] = 0;
 	}
+	$views[$view->name] = $view;
 	// return views
 	return $views;
 }

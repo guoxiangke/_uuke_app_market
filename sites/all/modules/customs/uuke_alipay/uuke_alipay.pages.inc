@@ -236,11 +236,7 @@ function uuke_alipay_content_types_setting_form_submit($form, &$form_state){
          TRADE_FINISHED(表示交易已经成功结束);
         */
       //执行自动发货 begin
-      if($trade_status == 'WAIT_SELLER_SEND_GOODS'){
-        $send_goods_confirm_link = send_goods_confirm_link($trade_no,$out_trade_no);
-        //https://www.alipay.com/cooperate/gateway.do?_input_charset=UTF-8&invoice_no=1365556470_n1_u1&logistics_name=uuke_EXPRESS&partner=2088901533144817&service=send_goods_confirm_by_platform&trade_no=2013041040251316&transport_type=EXPRESS&sign=1700a5b303e8b6954df982e7ccaff52a&sign_type=MD5
-        $response_xml = uuke_getHttpResponseGET($send_goods_confirm_link);
-      }
+      uuke_alipay_auto_send_goods($trade_no,$out_trade_no);
       //执行自动发货 end
       //更新订单
       $request = $_POST;
@@ -302,12 +298,7 @@ function uuke_alipay_return() {
   $trade_no =  $_GET['trade_no'];
   $trade_status = $_GET['trade_status'];
   // $body = $_GET['body'];
-  //执行自动发货 begin
-  $send_goods_confirm_link = send_goods_confirm_link($trade_no,$out_trade_no);
-  //https://www.alipay.com/cooperate/gateway.do?_input_charset=UTF-8&invoice_no=1365556470_n1_u1&logistics_name=uuke_EXPRESS&partner=2088901533144817&service=send_goods_confirm_by_platform&trade_no=2013041040251316&transport_type=EXPRESS&sign=1700a5b303e8b6954df982e7ccaff52a&sign_type=MD5
-  $response_xml = uuke_getHttpResponseGET($send_goods_confirm_link);
-  //执行自动发货 end
-  //require_once("uc_alipay_service.inc");
+
   $partner = variable_get('uuke_alipay_partner', '');
   $security_code = variable_get('uuke_alipay_key', '');
   $sign_type = "MD5";
@@ -320,7 +311,11 @@ function uuke_alipay_return() {
     if($trade_status == 'WAIT_SELLER_SEND_GOODS') {
       // create a now order node begin
       $request = $_GET;
+      
       $order = uuke_alipay_order_save($request);
+  //执行自动发货 begin
+  uuke_alipay_auto_send_goods($trade_no,$out_trade_no);
+  //执行自动发货 end
       // create a now order node end
       drupal_set_message(t('付款成功!.'), 'status', FALSE);
       drupal_goto('node/'.$product_node->nid);
