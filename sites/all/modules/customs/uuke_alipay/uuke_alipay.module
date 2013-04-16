@@ -455,5 +455,7 @@ function uuke_alipay_order_check($product_node,$account=NULL) {
  * Implements hook_views_api().
  */
 function uuke_alipay_views_api() {
-  return array('api' => 3.0);
+  return array(
+  	'api' => 3.0,
+  );
 }
