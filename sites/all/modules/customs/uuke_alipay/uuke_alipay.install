@@ -126,7 +126,7 @@ function uuke_alipay_install() {
     ),
   );
   //full content type of app.
-  $data_full = array(
+  $data = array(
     'bundles' => array(
       'app' => (object) array(
         'type' => 'app',
@@ -1240,25 +1240,23 @@ function uuke_alipay_install() {
       ),
     ),
   );
-  //TODO: if bundles(content type) exist, break.
-  // foreach ($data['bundles'] as $type => $bundle) {
-  //     //node_type_set_defaults
-  //   if(in_array($type, node_type_get_types())){
-  //     node_type_set_defaults($bundle);
-  //     drupal_set_message(t('Content Type : '. $type .' was created.'));
-  //     watchdog('uuke_alipay', 'create content type : '. $type);
-  //   }else{
-  //     node_type_save($bundle);
-  //     drupal_set_message(t('Content Type : '. $type .' was customed.'));
-  //     watchdog('uuke_alipay', 'custom content type : '. $type);
-  //   }
-  // }
+  //如果没有APP内容类型，则创建，否则不导入
+  foreach ($data['bundles'] as $type => $bundle) {
+      //node_type_set_defaults
+    if(!in_array($type, node_type_get_types())) {
+      node_type_save($bundle);
+      drupal_set_message(t('Content Type : '. $type .' was created.'));
+      watchdog('uuke_alipay:not', 'custom content type : '. $type);
+    }else{
+      drupal_set_message(t('Content Type : '. $type .' was exist.'));
+    }
+  }
   
   foreach ($data['fields'] as $field_name => $field) {
     $ori_field = field_info_field($field_name);
     if (empty($ori_field)) {
-       $field = field_create_field($field);
-       watchdog('uuke_alipay', 'created field: '.$field_name);
+      $field = field_create_field($field);
+      watchdog('uuke_alipay', 'field:'.$field_name.' was created');
     }
   }
 
@@ -1267,8 +1265,8 @@ function uuke_alipay_install() {
       //$instance = field_info_instance('node', 'body', $type->type);
       $ori_instance = field_info_instance('node', $instances_name, $instance['bundle']);
       if (empty($ori_instance)) {
-         $instance = field_create_instance($instance);
-         watchdog('uuke_alipay', 'created instance: '.$instances_name);
+        $instance = field_create_instance($instance);
+        watchdog('uuke_alipay', 'instance:'.$instances_name.' was created');
       }
     }
   }
@@ -2469,11 +2467,11 @@ function uuke_alipay_install() {
       //node_type_set_defaults
     if(in_array($type, node_type_get_types())){
       node_type_set_defaults($bundle);
-      drupal_set_message(t('Content Type : '. $type .' was created.'));
+      drupal_set_message(t('Content Type : '. $type .' was customed.'));
       watchdog('uuke_alipay', 'create content type : '. $type);
     }else{
       node_type_save($bundle);
-      drupal_set_message(t('Content Type : '. $type .' was customed.'));
+      drupal_set_message(t('Content Type : '. $type .' was created.'));
       watchdog('uuke_alipay', 'custom content type : '. $type);
     }
   }
